@@ -2,50 +2,58 @@
 # -*- coding: utf-8 -*-
 """Tuneup assignment"""
 
-__author__ = "???"
+__author__ = "Scott Reese"
 
 import cProfile
 import pstats
 import functools
+import timeit
+from functools import wraps
+from collections import Counter
 
 
 def profile(func):
     """A function that can be used as a decorator to measure performance"""
-    # You need to understand how decorators are constructed and used.
-    # Be sure to review the lesson material on decorators, they are used
-    # extensively in Django and Flask.
-    raise NotImplementedError("Complete this decorator function")
+    @wraps(func)
+    def inner_wrapper(*args, **kwargs):
+        import cProfile
+        import pstats
+        import StringIO
+        pr = cProfile.Profile()
+        pr.enable()
+        result = func(*args, **kwargs)
+        pr.disable()
+        s = StringIO.StringIO()
+        ps = pstats.Stats(pr, stream=s).sort_stats("cumulative")
+        ps.print_stats()
+        print(s.getvalue())
+        return result
+    return inner_wrapper
 
 
 def read_movies(src):
     """Returns a list of movie titles"""
     print('Reading file: {}'.format(src))
     with open(src, 'r') as f:
+        line = f.readline()
         return f.read().splitlines()
 
 
-def is_duplicate(title, movies):
-    """returns True if title is within movies list"""
-    for movie in movies:
-        if movie.lower() == title.lower():
-            return True
-    return False
-
-
+@profile
 def find_duplicate_movies(src):
     """Returns a list of duplicate movies from a src list"""
     movies = read_movies(src)
-    duplicates = []
-    while movies:
-        movie = movies.pop()
-        if is_duplicate(movie, movies):
-            duplicates.append(movie)
-    return duplicates
+    counts = Counter(movies)
+    return list(dict.fromkeys([movie for movie in movies if counts[movie] > 1]))
 
 
 def timeit_helper():
     """Part A:  Obtain some profiling measurements using timeit"""
-    # YOUR CODE GOES HERE
+    t = timeit.Timer("main()", "from __main__ import main")
+    times = t.repeat(repeat=7, number=5)
+    res = [time/5 for time in times]
+    print("Best time across 7 repeats of 5 runs per repeat: " +
+          str(min(res)) + " sec")
 
 
 def main():
